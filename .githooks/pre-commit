@@ -1,0 +1,22 @@
+#!/bin/sh
+# Pre-commit: mencegah DATA INTERNAL ikut ter-commit (repositori ini ditujukan untuk Public).
+# Aktifkan sekali per salinan repositori:  git config core.hooksPath .githooks
+bad=0
+
+# 1) Berkas Excel/CSV data tidak boleh di-commit (mis. data/Internet.xlsx).
+if git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(xlsx|xls)$|^data/.+\.(csv|json)$' > /dev/null; then
+  echo "DITOLAK: ada berkas data (.xlsx/.xls atau data/*.csv|json) pada commit ini."
+  echo "         Repositori ini Public; data internal tidak boleh masuk. Keluarkan dengan: git reset HEAD <berkas>"
+  bad=1
+fi
+
+# 2) js/data/data-awal.js hanya boleh berupa template kosong (tanpa baris data).
+if git diff --cached --name-only --diff-filter=ACMR | grep -x 'js/data/data-awal.js' > /dev/null; then
+  if git show :js/data/data-awal.js | grep -q '"namaGerai"'; then
+    echo "DITOLAK: js/data/data-awal.js berisi DATA ASLI (hasil tools/convert-xlsx.ps1)."
+    echo "         Kembalikan template kosong:  git checkout js/data/data-awal.js"
+    bad=1
+  fi
+fi
+
+exit $bad

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard · Monitoring ISP Sicepat</title>
+  <script>
+    /* Terapkan tema tersimpan sebelum render agar tidak berkedip. */
+    try { document.documentElement.setAttribute('data-theme', localStorage.getItem('isp-theme') === 'light' ? 'light' : 'dark'); } catch (e) { /* tetap gelap */ }
+  </script>
+  <link rel="icon" type="image/png" href="assets/img/logo-sicepat.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<!-- PETA HALAMAN (index.html = satu-satunya halaman; SPA sederhana tanpa build): -->
+<!-- 1. Layar login (#authScreen) - tampil selama body ber-kelas is-locked. -->
+<!-- 2. Sprite ikon SVG (symbol) - dipanggil lewat use href="#i-...". -->
+<!-- 3. .shell: menu kiri (#sidenav) + .main-col (topbar + 4 halaman data-page). -->
+<!-- 4. Dialog: form gerai, hapus gerai, ganti password, form network, hapus network. -->
+<!-- 5. Toast, lalu script (urutan penting, lihat komentar di bagian script). -->
+<!-- JS menemukan elemen lewat atribut id; JANGAN ganti id tanpa mengubah js\*.js. -->
+<!-- CSS: css\style.css (tema/komponen) dan css\dashboard.css (layout). -->
+<!-- Catatan: di dalam komentar HTML jangan memakai dua tanda minus berurutan. -->
+<!-- Catatan debug: halaman aktif ditentukan #hash URL (mis. #network); layar kosong = cek Console. -->
+<body class="is-locked">
+  <!-- ===== Layar login / buat akun pertama ===== -->
+  <!-- id dipakai JS (ui-auth.js/auth.js): authScreen, authForm, authTitle, authSub, authError, authName, authUser, authPass, authPass2, authShowPass, authRemember, authSubmit. -->
+  <!-- Elemen .auth-setup hanya tampil saat setup akun pertama; .auth-login saat mode masuk. -->
+  <section class="auth-screen" id="authScreen" aria-label="Login">
+    <form class="auth-card" id="authForm" novalidate>
+      <div class="auth-brand"><img class="brand-logo" src="assets/img/logo-sicepat.png" alt="Sicepat Ekspres" width="44" height="44"><div><strong>Monitoring ISP Sicepat</strong><span>Pendataan internet gerai</span></div></div>
+      <h1 id="authTitle">Masuk</h1>
+      <p class="auth-sub" id="authSub"></p>
+      <div id="authError" class="alert" role="alert" hidden></div>
+
+      <label class="field auth-setup" hidden><span>Nama lengkap</span><input id="authName" maxlength="80" autocomplete="name"></label>
+      <label class="field"><span>Username</span><input id="authUser" maxlength="32" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+      <label class="field"><span>Password</span><input id="authPass" maxlength="128" type="password" autocomplete="current-password" required></label>
+      <label class="field auth-setup" hidden><span>Ulangi password <small>(min. 8 karakter, huruf &amp; angka)</small></span><input id="authPass2" maxlength="128" type="password" autocomplete="new-password"></label>
+
+      <div class="auth-row">
+        <label class="check"><input type="checkbox" id="authShowPass"> Tampilkan password</label>
+        <label class="check auth-login"><input type="checkbox" id="authRemember"> Ingat saya 7 hari</label>
+      </div>
+      <button type="submit" class="btn btn-primary auth-submit" id="authSubmit">Masuk</button>
+      <p class="auth-note">Akun tersimpan di browser ini. Login ini hanya membatasi akses tampilan; bukan pengganti keamanan server.</p>
+    </form>
+  </section>
+
+  <!-- ===== Sprite ikon SVG (tidak terlihat; tiap ikon dipakai via <use href="#i-nama">) ===== -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+      <symbol id="i-bars" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+      <symbol id="i-pulse" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></symbol>
+      <symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+      <symbol id="i-chevrons" viewBox="0 0 24 24"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></symbol>
+      <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2"/><path d="M18 5l3 3"/><path d="M15 8l2 2"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+    </defs>
+  </svg>
+
+<!-- ===== Shell aplikasi (disembunyikan CSS selama is-locked) ===== -->
+<div class="shell">
+  <!-- ===== Menu kiri (sidebar) ===== -->
+  <!-- id dipakai JS: sidenav, navCollapse (ciutkan), navNetCount & navCount (badge jumlah), btnImport, importFile, userAvatar, userName, userRole, btnChangePw, btnLogout. -->
+  <!-- Atribut data-nav = nama halaman (dashboard/network/data/rekap); data-file/data-format = ekspor/template. -->
+  <aside class="sidenav" id="sidenav" aria-label="Menu utama">
+    <div class="brand">
+      <img class="brand-logo" src="assets/img/logo-sicepat.png" alt="Sicepat Ekspres" width="44" height="44">
+      <div class="brand-text"><strong>Monitoring ISP Sicepat</strong><span>Pendataan internet gerai</span></div>
+    </div>
+    <button type="button" class="nav-collapse" id="navCollapse" aria-label="Ciutkan menu" aria-expanded="true" title="Ciutkan / lebarkan menu"><svg class="ico"><use href="#i-chevrons"/></svg><span class="nav-text">Ciutkan menu</span></button>
+
+    <p class="nav-title">RINGKASAN</p>
+    <nav class="nav-list" aria-label="Ringkasan">
+      <a class="nav-link" href="#dashboard" data-nav="dashboard" title="Dashboard"><svg class="ico"><use href="#i-grid"/></svg><span class="nav-text">Dashboard</span></a>
+      <a class="nav-link" href="#network" data-nav="network" title="Data Network"><svg class="ico"><use href="#i-server"/></svg><span class="nav-text">Data Network</span> <span class="nav-badge" id="navNetCount">0</span></a>
+    </nav>
+
+    <p class="nav-title">DATA &amp; PEMBAYARAN</p>
+    <nav class="nav-list" aria-label="Data">
+      <a class="nav-link" href="#data" data-nav="data" title="Data Gerai"><svg class="ico"><use href="#i-list"/></svg><span class="nav-text">Data Gerai</span> <span class="nav-badge" id="navCount">0</span></a>
+      <a class="nav-link" href="#rekap" data-nav="rekap" title="Rekap Pembayaran"><svg class="ico"><use href="#i-bars"/></svg><span class="nav-text">Rekap Pembayaran</span></a>
+    </nav>
+
+    <p class="nav-title">IMPOR &amp; EKSPOR</p>
+    <div class="nav-list">
+      <button type="button" class="nav-btn" id="btnImport" title="Impor Excel / CSV"><svg class="ico"><use href="#i-upload"/></svg><span class="nav-text">Impor Excel / CSV</span></button>
+      <button type="button" class="nav-btn" data-file="export" data-format="xlsx" title="Ekspor Excel"><svg class="ico"><use href="#i-download"/></svg><span class="nav-text">Ekspor Excel</span></button>
+      <button type="button" class="nav-btn" data-file="export" data-format="csv" title="Ekspor CSV"><svg class="ico"><use href="#i-download"/></svg><span class="nav-text">Ekspor CSV</span></button>
+      <button type="button" class="nav-btn" data-file="template" data-format="xlsx" title="Template Excel"><svg class="ico"><use href="#i-file"/></svg><span class="nav-text">Template Excel</span></button>
+      <button type="button" class="nav-btn" data-file="template" data-format="csv" title="Template CSV"><svg class="ico"><use href="#i-file"/></svg><span class="nav-text">Template CSV</span></button>
+      <input type="file" id="importFile" accept=".xlsx,.xls,.csv,text/csv" hidden>
+    </div>
+
+    <div class="user-box">
+      <div class="user-id">
+        <span class="user-avatar" id="userAvatar" aria-hidden="true">?</span>
+        <div class="nav-text"><strong id="userName">–</strong><small id="userRole"></small></div>
+      </div>
+      <div class="user-actions">
+        <button type="button" class="btn btn-sm" id="btnChangePw" title="Ganti password"><svg class="ico"><use href="#i-key"/></svg><span class="nav-text">Ganti Password</span></button>
+        <button type="button" class="btn btn-sm btn-danger-ghost" id="btnLogout" title="Keluar"><svg class="ico"><use href="#i-logout"/></svg><span class="nav-text">Keluar</span></button>
+      </div>
+    </div>
+
+    <p class="sidenav-foot nav-text">Satu ID · Astinet · HSI · ATS · Moratel · HSP · Fiberstart</p>
+  </aside>
+  <!-- Tirai gelap saat menu geser terbuka di layar kecil (id: sidenavBackdrop). -->
+  <div class="sidenav-backdrop" id="sidenavBackdrop" hidden></div>
+
+  <div class="main-col">
+    <!-- ===== Topbar ===== -->
+    <!-- id dipakai JS: menuToggle, pageTitle, searchInput, yearSelect (tahun bayar), themeToggle, btnAdd, btnAddLabel. -->
+    <header class="topbar">
+      <button type="button" class="btn menu-toggle" id="menuToggle" aria-controls="sidenav" aria-expanded="false" aria-label="Buka menu"><svg class="ico"><use href="#i-menu"/></svg></button>
+      <h1 id="pageTitle">Dashboard</h1>
+      <label class="search"><span class="sr-only">Cari gerai</span>
+        <svg class="ico"><use href="#i-search"/></svg>
+        <input type="search" id="searchInput" maxlength="100" placeholder="Cari gerai, ID pelanggan, vendor, PO…" autocomplete="off">
+      </label>
+      <span class="topbar-spacer"></span>
+      <label class="field field-inline"><span class="sr-only">Tahun bayar</span><span aria-hidden="true" class="muted">Tahun</span><select id="yearSelect" aria-label="Tahun bayar"></select></label>
+      <button type="button" class="btn theme-toggle" id="themeToggle" aria-label="Ganti tema gelap/terang" title="Ganti tema"><svg class="ico i-sun"><use href="#i-sun"/></svg><svg class="ico i-moon"><use href="#i-moon"/></svg></button>
+      <button type="button" class="btn btn-primary" id="btnAdd"><svg class="ico"><use href="#i-plus"/></svg><span id="btnAddLabel">Tambah Gerai</span></button>
+    </header>
+
+    <!-- ===== Isi utama: 4 halaman ber-atribut data-page; JS (ui-nav.js) hanya menampilkan satu, lainnya hidden, sesuai #hash URL ===== -->
+    <main class="wrap">
+      <!-- Judul halaman: id pageHeading dan pageSub diisi JS. -->
+      <div class="page-head">
+        <h2 id="pageHeading">Dashboard</h2>
+        <p id="pageSub"></p>
+      </div>
+
+      <!-- ===== Dashboard ===== -->
+      <!-- id dipakai JS: statTotal/statActive/statInactive/statExisting/statTakeout, statExpiring/statExpired/statSoon/statMid/statLong, statPayment/statPaymentYear/statAvg/statBest, donutStatus/legActive/legInactive/legPct, chartsSection/chartsEmpty/chartsTotal/chartsYear/chartShare/chartBar/expiringCount/expiringList/chartTip. -->
+      <div data-page="dashboard">
+        <!-- Kartu KPI: Total Gerai, Masa Sewa, Total Pembayaran, donut Active/Inactive. -->
+        <section class="kpis" aria-label="Ringkasan">
+          <article class="kpi">
+            <div class="kpi-head"><h3>Total Gerai</h3><span class="kpi-ico"><svg class="ico"><use href="#i-pulse"/></svg></span></div>
+            <div class="kpi-body">
+              <div class="kpi-big" id="statTotal">0</div>
+              <div class="kpi-cap">gerai terdata</div>
+              <div class="kpi-rows">
+                <div><span><i class="dot" style="background:var(--primary)"></i>Active</span><strong id="statActive">0</strong></div>
+                <div><span><i class="dot" style="background:var(--ring-inactive)"></i>Inactive</span><strong id="statInactive">0</strong></div>
+                <div><span><i class="dot" style="background:var(--info)"></i>Existing</span><strong id="statExisting">0</strong></div>
+                <div><span><i class="dot" style="background:var(--warn)"></i>Takeout</span><strong id="statTakeout">0</strong></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="kpi">
+            <div class="kpi-head"><h3>Masa Sewa (Active)</h3><span class="kpi-ico warn"><svg class="ico"><use href="#i-clock"/></svg></span></div>
+            <div class="kpi-body">
+              <div class="kpi-big" id="statExpiring">0</div>
+              <div class="kpi-cap">habis / ≤ 30 hari lagi</div>
+              <div class="kpi-rows">
+                <div><span><i class="dot" style="background:var(--danger)"></i>Sudah lewat</span><strong id="statExpired">0</strong></div>
+                <div><span><i class="dot" style="background:var(--warn)"></i>≤ 30 hari</span><strong id="statSoon">0</strong></div>
+                <div><span><i class="dot" style="background:var(--info)"></i>31–90 hari</span><strong id="statMid">0</strong></div>
+                <div><span><i class="dot" style="background:var(--ok)"></i>&gt; 90 hari</span><strong id="statLong">0</strong></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="kpi">
+            <div class="kpi-head"><h3>Total Pembayaran</h3><span class="kpi-ico info">Rp</span></div>
+            <div class="kpi-body">
+              <div class="kpi-big money" id="statPayment">Rp 0</div>
+              <div class="kpi-cap">tahun <span id="statPaymentYear"></span></div>
+              <div class="kpi-rows one-col">
+                <div><span>Rata-rata per bulan</span><strong id="statAvg">–</strong></div>
+                <div><span>Bulan tertinggi</span><strong id="statBest">–</strong></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="kpi">
+            <div class="kpi-head"><h3>Gerai Active / Inactive</h3></div>
+            <div class="kpi-donut">
+              <svg viewBox="0 0 120 120" id="donutStatus" role="img" aria-label="Perbandingan gerai Active dan Inactive"></svg>
+              <div class="legend-col">
+                <div><span><i class="dot" style="background:var(--primary)"></i>Active</span><strong id="legActive">0</strong></div>
+                <div><span><i class="dot" style="background:var(--ring-inactive)"></i>Inactive</span><strong id="legInactive">0</strong></div>
+                <div><span>Active</span><strong id="legPct">0%</strong></div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- Grafik pembayaran; panel .needs-pay disembunyikan JS bila tidak ada data pembayaran (#chartsEmpty tampil sebagai gantinya). -->
+        <section class="dash-stack" id="chartsSection" aria-label="Grafik pembayaran">
+          <div id="chartsEmpty" class="panel empty" hidden>
+            <h3>Belum ada data pembayaran</h3>
+            <p>Isi nominal pembayaran per bulan pada data gerai, atau pilih tahun lain di kolom "Tahun".</p>
+          </div>
+
+          <section class="panel needs-pay">
+            <h3 class="block-title">Persentase pembayaran masing-masing ISP</h3>
+            <p class="chart-sub">Porsi tiap ISP dari total pembayaran <strong id="chartsTotal">Rp 0</strong> <span id="chartsYear"></span></p>
+            <div id="chartShare" class="share"></div>
+          </section>
+
+          <div class="dash-two">
+            <section class="panel needs-pay">
+              <h3 class="block-title">Pembayaran per ISP</h3>
+              <p class="chart-sub">Total nominal terbayar tiap ISP (arahkan kursor ke kolom untuk rincian)</p>
+              <div class="chart-scroll" id="chartBar"></div>
+            </section>
+
+            <section class="panel">
+              <h3 class="block-title">Sewa segera berakhir</h3>
+              <p class="chart-sub">Gerai Active dengan sisa sewa ≤ 30 hari <span id="expiringCount"></span></p>
+              <ul class="expiring" id="expiringList"></ul>
+            </section>
+          </div>
+          <div id="chartTip" class="tip" role="status" hidden></div>
+        </section>
+      </div>
+
+      <!-- ===== Data Network ===== -->
+      <!-- id dipakai JS (ui-network.js): netStats, netFilterVendor/netFilterFungsi/netFilterRasio, btnNetImport, netImportFile, btnNetAdd, netHead, netBody, netPagerInfo, netPageSize, netPagePrev, netPageNext, netPageLabel. data-net-file/data-format = ekspor/template. -->
+      <div data-page="network" hidden>
+        <section class="net-stats" id="netStats" aria-label="Ringkasan Data Network"></section>
+        <section class="panel" aria-label="Data Network">
+          <div class="toolbar">
+            <label class="field"><span class="sr-only">Nama ISP</span><select id="netFilterVendor"></select></label>
+            <label class="field"><span class="sr-only">Function</span><select id="netFilterFungsi"></select></label>
+            <label class="field"><span class="sr-only">Rasio</span><select id="netFilterRasio"></select></label>
+            <span class="topbar-spacer"></span>
+            <button type="button" class="btn btn-sm" id="btnNetImport"><svg class="ico"><use href="#i-upload"/></svg> Impor</button>
+            <button type="button" class="btn btn-sm" data-net-file="export" data-format="xlsx"><svg class="ico"><use href="#i-download"/></svg> Excel</button>
+            <button type="button" class="btn btn-sm" data-net-file="export" data-format="csv"><svg class="ico"><use href="#i-download"/></svg> CSV</button>
+            <button type="button" class="btn btn-sm" data-net-file="template" data-format="xlsx"><svg class="ico"><use href="#i-file"/></svg> Template</button>
+            <button type="button" class="btn btn-sm btn-danger-ghost" id="btnNetClear" title="Hapus semua Data Network (Data Gerai tidak ikut terhapus)"><svg class="ico"><use href="#i-trash"/></svg> Hapus Semua</button>
+            <button type="button" class="btn btn-sm btn-primary" id="btnNetAdd"><svg class="ico"><use href="#i-plus"/></svg> Tambah Data Network</button>
+            <input type="file" id="netImportFile" accept=".xlsx,.xls,.csv,text/csv" hidden>
+          </div>
+
+          <div class="table-wrap" role="region" aria-label="Tabel Data Network">
+            <table class="data net-table fit">
+              <thead id="netHead"></thead>
+              <tbody id="netBody"></tbody>
+            </table>
+          </div>
+
+          <div class="pager">
+            <span id="netPagerInfo" aria-live="polite"></span>
+            <div class="pager-controls">
+              <label class="field"><span class="sr-only">Jumlah per halaman</span><select id="netPageSize"></select></label>
+              <button type="button" class="btn btn-sm" id="netPagePrev">‹ Sebelumnya</button>
+              <span id="netPageLabel" class="pager-label"></span>
+              <button type="button" class="btn btn-sm" id="netPageNext">Berikutnya ›</button>
+            </div>
+          </div>
+          <p class="hint">Tips impor Excel: ketik Rasio sebagai teks (mis. awali dengan tanda petik: '1:2) agar Excel tidak mengubahnya menjadi jam.</p>
+        </section>
+      </div>
+
+      <!-- ===== Data Gerai ===== -->
+      <!-- id dipakai JS (ui-table.js): vendorChips, filterVendor/filterStatus/filterRemark, tableHead, tableBody, pagerInfo, pageSize, pagePrev, pageNext, pageLabel. Baris tabel dirender JS. -->
+      <div data-page="data" hidden>
+        <section class="panel" aria-label="Data gerai">
+          <div class="chips" id="vendorChips" role="group" aria-label="Filter cepat vendor"></div>
+
+          <div class="toolbar">
+            <label class="field"><span class="sr-only">Vendor</span><select id="filterVendor"></select></label>
+            <label class="field"><span class="sr-only">Status</span><select id="filterStatus"></select></label>
+            <label class="field"><span class="sr-only">Remark</span><select id="filterRemark"></select></label>
+          </div>
+          <div class="table-wrap" role="region" aria-label="Tabel data gerai">
+            <table class="data">
+              <thead id="tableHead"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="pager">
+            <span id="pagerInfo" aria-live="polite"></span>
+            <div class="pager-controls">
+              <label class="field"><span class="sr-only">Jumlah per halaman</span><select id="pageSize"></select></label>
+              <button type="button" class="btn btn-sm" id="pagePrev">‹ Sebelumnya</button>
+              <span id="pageLabel" class="pager-label"></span>
+              <button type="button" class="btn btn-sm" id="pageNext">Berikutnya ›</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ===== Rekap Pembayaran ===== -->
+      <!-- Tabel #chartTable seluruhnya diisi JS (ui-charts.js); mengikuti tahun di #yearSelect. -->
+      <div data-page="rekap" hidden>
+        <section class="panel" aria-label="Rekap pembayaran">
+          <h3 class="block-title">Rekap pembayaran per ISP per bulan (Rp)</h3>
+          <p class="chart-sub">Mengikuti tahun yang dipilih di bagian atas</p>
+          <div class="table-wrap"><table class="data rekap-t" id="chartTable"></table></div>
+        </section>
+      </div>
+
+      <p class="footnote">Data disimpan di browser perangkat ini (localStorage). Gunakan <strong>Ekspor Excel</strong> secara berkala untuk cadangan.</p>
+    </main>
+  </div>
+</div>
+
+  <!-- ===== Dialog (elemen <dialog>; dibuka/ditutup JS) ===== -->
+  <!-- Form Tambah/Ubah Gerai (ui-form.js). id: formDialog, gerForm, formTitle, formClose, formErrors, fKodeInduk, fPo, fNamaGerai, fAlamat, fAkhirSewa, fStatus, fIdPelanggan, fVendor, fRemark, fCatatan, fYear, payTotal, payGrid (kolom bulanan dibuat JS), formCancel. -->
+  <dialog id="formDialog" class="dialog dialog-lg" aria-labelledby="formTitle">
+    <form id="gerForm" novalidate>
+      <header class="dialog-head">
+        <h2 id="formTitle">Tambah Gerai</h2>
+        <button type="button" class="icon-btn" id="formClose" aria-label="Tutup">✕</button>
+      </header>
+      <div class="dialog-body">
+        <div id="formErrors" class="alert" role="alert" hidden></div>
+        <div class="grid">
+          <label class="field"><span>Kode Induk</span><input id="fKodeInduk" maxlength="50"></label>
+          <label class="field"><span>PO</span><input id="fPo" maxlength="50"></label>
+          <label class="field span-2"><span>Nama Gerai *</span><input id="fNamaGerai" maxlength="150" required></label>
+          <label class="field span-2"><span>Alamat Gerai *</span><textarea id="fAlamat" maxlength="500" rows="2" required></textarea></label>
+          <label class="field"><span>Akhir Masa Sewa <small>(sisa hari dihitung otomatis)</small></span><input type="date" id="fAkhirSewa"></label>
+          <label class="field"><span>Status *</span><select id="fStatus"></select></label>
+          <label class="field"><span>ID Pelanggan</span><input id="fIdPelanggan" maxlength="50"></label>
+          <label class="field"><span>Nama Vendor *</span><select id="fVendor"></select></label>
+          <label class="field"><span>Remark *</span><select id="fRemark"></select></label>
+          <label class="field span-2"><span>Keterangan Remark <small>(mis. alasan / bulan takeout)</small></span><input id="fCatatan" maxlength="200" placeholder="Contoh: Nov 25"></label>
+        </div>
+
+        <fieldset class="pay-box">
+          <legend>Pembayaran Bulanan (Rp)</legend>
+          <div class="pay-head">
+            <label class="field field-inline"><span>Tahun</span><select id="fYear"></select></label>
+            <span class="pay-total">Total: <strong id="payTotal">Rp 0</strong></span>
+          </div>
+          <div class="pay-grid" id="payGrid"></div>
+          <p class="hint">Kosongkan bulan yang belum dibayar.</p>
+        </fieldset>
+      </div>
+      <footer class="dialog-foot">
+        <button type="button" class="btn" id="formCancel">Batal</button>
+        <button type="submit" class="btn btn-primary">Simpan</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Konfirmasi hapus gerai. id: deleteDialog, deleteName, deleteCancel, deleteConfirm. -->
+  <dialog id="deleteDialog" class="dialog dialog-sm" aria-labelledby="deleteTitle">
+    <header class="dialog-head"><h2 id="deleteTitle">Hapus data gerai?</h2></header>
+    <div class="dialog-body"><p>Data <strong id="deleteName"></strong> akan dihapus permanen dan tidak dapat dikembalikan.</p></div>
+    <footer class="dialog-foot">
+      <button type="button" class="btn" id="deleteCancel">Batal</button>
+      <button type="button" class="btn btn-danger" id="deleteConfirm">Ya, Hapus</button>
+    </footer>
+  </dialog>
+
+  <!-- Daftar saran nama gerai untuk input #nGerai di form Network (diisi JS). -->
+  <datalist id="geraiList"></datalist>
+
+  <!-- Ganti password. id: pwDialog, pwForm, pwError, pwOld, pwNew, pwNew2, pwCancel, pwSubmit. -->
+  <dialog id="pwDialog" class="dialog dialog-sm" aria-labelledby="pwTitle">
+    <form id="pwForm" novalidate>
+      <header class="dialog-head"><h2 id="pwTitle">Ganti Password</h2></header>
+      <div class="dialog-body">
+        <div id="pwError" class="alert" role="alert" hidden></div>
+        <div class="grid" style="grid-template-columns:1fr">
+          <label class="field"><span>Password saat ini</span><input id="pwOld" maxlength="128" type="password" autocomplete="current-password" required></label>
+          <label class="field"><span>Password baru <small>(min. 8 karakter, huruf &amp; angka)</small></span><input id="pwNew" maxlength="128" type="password" autocomplete="new-password" required></label>
+          <label class="field"><span>Ulangi password baru</span><input id="pwNew2" maxlength="128" type="password" autocomplete="new-password" required></label>
+        </div>
+      </div>
+      <footer class="dialog-foot">
+        <button type="button" class="btn" id="pwCancel">Batal</button>
+        <button type="submit" class="btn btn-primary" id="pwSubmit">Simpan</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Form Tambah/Ubah Data Network (ui-network.js). id: netDialog, netForm, netFormTitle, netClose, netFormErrors, nCode, nFungsi, nGerai, nAlamat, nVendor, nRasio, nBandwidth, nSsid, nGateway, nIp, nDns, nMtType, nMtSn, netCancel. -->
+  <dialog id="netDialog" class="dialog dialog-lg" aria-labelledby="netFormTitle">
+    <form id="netForm" novalidate>
+      <header class="dialog-head">
+        <h2 id="netFormTitle">Tambah Data Network</h2>
+        <button type="button" class="icon-btn" id="netClose" aria-label="Tutup">✕</button>
+      </header>
+      <div class="dialog-body">
+        <div id="netFormErrors" class="alert" role="alert" hidden></div>
+        <div class="grid">
+          <label class="field"><span>Code Analytic</span><input id="nCode" maxlength="50" autocomplete="off"></label>
+          <label class="field"><span>Function *</span><select id="nFungsi"></select></label>
+          <label class="field span-2"><span>Nama Gerai * <small>(pilih dari Data Gerai agar alamat &amp; ISP terisi otomatis)</small></span><input id="nGerai" maxlength="150" list="geraiList" autocomplete="off" required></label>
+          <label class="field span-2"><span>Alamat</span><textarea id="nAlamat" maxlength="500" rows="2"></textarea></label>
+          <label class="field"><span>Nama ISP *</span><select id="nVendor"></select></label>
+          <label class="field"><span>Rasio *</span><select id="nRasio"></select></label>
+          <label class="field"><span>Bandwidth</span><input id="nBandwidth" maxlength="80" placeholder="Contoh: 50 Mbps" autocomplete="off"></label>
+          <label class="field"><span>SSID</span><input id="nSsid" maxlength="80" autocomplete="off"></label>
+          <label class="field"><span>IP Gateway</span><input id="nGateway" maxlength="20" placeholder="192.168.1.1" inputmode="decimal" autocomplete="off"></label>
+          <label class="field"><span>IP Address</span><input id="nIp" maxlength="20" placeholder="192.168.1.2 atau 192.168.1.2/24" inputmode="decimal" autocomplete="off"></label>
+          <label class="field span-2"><span>DNS <small>(pisahkan dengan koma)</small></span><input id="nDns" maxlength="150" placeholder="8.8.8.8, 1.1.1.1" autocomplete="off"></label>
+          <label class="field"><span>Mikrotik Type</span><input id="nMtType" maxlength="80" placeholder="Contoh: hAP ac2" autocomplete="off"></label>
+          <label class="field"><span>SN Mikrotik</span><input id="nMtSn" maxlength="80" autocomplete="off"></label>
+        </div>
+      </div>
+      <footer class="dialog-foot">
+        <button type="button" class="btn" id="netCancel">Batal</button>
+        <button type="submit" class="btn btn-primary">Simpan</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Konfirmasi HAPUS SEMUA Data Network. id: netClearDialog, netClearCount, netClearBackup, netClearCancel, netClearConfirm. -->
+  <dialog id="netClearDialog" class="dialog dialog-sm" aria-labelledby="netClearTitle">
+    <header class="dialog-head"><h2 id="netClearTitle">Hapus semua Data Network?</h2></header>
+    <div class="dialog-body">
+      <p><strong id="netClearCount">0</strong> data Data Network akan dihapus permanen dan <strong>tidak dapat dikembalikan</strong>.</p>
+      <p class="hint">Data Gerai, pembayaran, dan akun login tidak ikut terhapus. Disarankan unduh cadangan Excel dulu.</p>
+    </div>
+    <footer class="dialog-foot">
+      <button type="button" class="btn" id="netClearBackup">Unduh cadangan</button>
+      <button type="button" class="btn" id="netClearCancel">Batal</button>
+      <button type="button" class="btn btn-danger" id="netClearConfirm">Ya, Hapus Semua</button>
+    </footer>
+  </dialog>
+
+  <!-- Konfirmasi hapus Data Network. id: netDeleteDialog, netDeleteName, netDeleteCancel, netDeleteConfirm. -->
+  <dialog id="netDeleteDialog" class="dialog dialog-sm" aria-labelledby="netDeleteTitle">
+    <header class="dialog-head"><h2 id="netDeleteTitle">Hapus Data Network?</h2></header>
+    <div class="dialog-body"><p>Data <strong id="netDeleteName"></strong> akan dihapus permanen dan tidak dapat dikembalikan.</p></div>
+    <footer class="dialog-foot">
+      <button type="button" class="btn" id="netDeleteCancel">Batal</button>
+      <button type="button" class="btn btn-danger" id="netDeleteConfirm">Ya, Hapus</button>
+    </footer>
+  </dialog>
+
+  <!-- Wadah notifikasi toast (diisi ui-toast.js). -->
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <noscript><p style="padding:2rem">Aplikasi ini membutuhkan JavaScript.</p></noscript>
+
+  <!-- ===== URUTAN SCRIPT (jangan diubah sembarangan; semua klasik, bukan module, berbagi namespace global window.App) ===== -->
+  <!-- Dimuat berurutan: skrip belakang memakai objek yang didefinisikan skrip depan. Galat "App.xxx is undefined" biasanya berarti urutan salah atau file gagal dimuat (cek tab Network/Console). -->
+  <!-- 1. Pustaka SheetJS (XLSX) dari CDN: dibutuhkan excel.js untuk impor/ekspor; tanpa internet, fitur Excel gagal. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- 2. Fondasi: config (konstanta/namespace), auth (akun/sesi), utils (helper), storage (localStorage). -->
+  <script src="js/config/config.js"></script>
+  <script src="js/core/auth.js"></script>
+  <script src="js/core/utils.js"></script>
+  <script src="js/core/storage.js"></script>
+  <!-- 3. Data & logika: store (data gerai), validation, sample, csv, excel (impor/ekspor), net-store (Data Network). -->
+  <script src="js/core/store.js"></script>
+  <script src="js/core/validation.js"></script>
+  <script src="js/core/sample.js"></script>
+  <script src="js/core/csv.js"></script>
+  <script src="js/core/excel.js"></script>
+  <script src="js/core/net-store.js"></script>
+  <!-- 4. Modul UI: toast lebih dulu karena dipakai modul UI lain untuk notifikasi; lalu tiap bagian layar. -->
+  <script src="js/ui/ui-toast.js"></script>
+  <script src="js/ui/ui-network.js"></script>
+  <script src="js/ui/ui-summary.js"></script>
+  <script src="js/ui/ui-table.js"></script>
+  <script src="js/ui/ui-form.js"></script>
+  <script src="js/ui/ui-charts.js"></script>
+  <script src="js/ui/ui-nav.js"></script>
+  <script src="js/ui/ui-theme.js"></script>
+  <script src="js/ui/ui-auth.js"></script>
+  <!-- 5. data-awal.js DIHASILKAN OTOMATIS oleh tools\convert-xlsx.ps1 dari data\Internet.xlsx (jangan diedit manual); harus sebelum app.js agar App.seedData tersedia. -->
+  <script src="js/data/data-awal.js"></script>
+  <!-- 6. app.js SELALU TERAKHIR: titik masuk yang merangkai semua modul di atas dan memulai aplikasi. -->
+  <script src="js/app.js"></script>
+</body>
+</html>

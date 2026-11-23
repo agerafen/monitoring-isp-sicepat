@@ -1,0 +1,20 @@
+# Berkas sementara & lokal
+node_modules/
+*.log
+*.tmp
+~$*
+Thumbs.db
+.DS_Store
+
+# Sampah editor
+*.swp
+*~
+
+# KEAMANAN DATA (repositori ini ditujukan untuk Public - JANGAN masukkan data internal):
+# - Folder data/ dikecualikan seluruhnya (taruh Internet.xlsx di sini secara LOKAL saja).
+# - js/data/data-awal.js di repositori hanya template KOSONG. Jika dibuat ulang oleh tools/convert-xlsx.ps1 isinya
+#   menjadi data asli: jangan di-commit (pre-commit hook di .githooks menolaknya).
+data/*
+!data/.gitkeep
+*.xlsx
+*.xls

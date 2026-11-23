@@ -1,0 +1,8 @@
+# Normalisasi akhir baris: teks dikonversi otomatis; berkas biner (gambar, Excel) tidak disentuh.
+* text=auto
+*.xlsx binary
+*.png binary
+*.jpg binary
+*.ico binary
+.githooks/* text eol=lf
+*.sh text eol=lf

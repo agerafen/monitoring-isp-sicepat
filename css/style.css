@@ -1,0 +1,211 @@
+/* ========================================================================== */
+/* style.css - token tema + komponen dasar (dipakai semua halaman).           */
+/* Tema gelap = bawaan (:root). Tema terang = [data-theme="light"] di <html>. */
+/* Cara ganti tema: set atribut data-theme="light"/"dark" pada <html>         */
+/* (diatur oleh JS); cukup menimpa variabel di blok tema, komponen otomatis ikut. */
+/* Layout shell/dashboard ada di dashboard.css, bukan di sini.                 */
+/* ========================================================================== */
+
+/* ---------- Token tema gelap (bawaan) ---------- */
+:root {
+  /* color-scheme memberi tahu browser agar scrollbar/kontrol bawaan ikut gelap. */
+  color-scheme: dark;
+  /* Palet: hitam pekat #0c0c0c + hijau fluoresen #6fef38, dipadukan dengan nuansa kebiruan tema paling awal */
+  /* Latar: --bg = latar halaman; --surface = kartu/panel; --surface-2 = header tabel/footer dialog; --surface-3 = hover/tombol; --sidebar-bg = menu kiri. */
+  --bg: #0b0e12; --surface: #12171d; --surface-2: #0e1217; --surface-3: #1b222b; --sidebar-bg: #090c10;
+  /* Teks: --text utama, --text-2 sekunder (label), --muted redup (keterangan/placeholder). */
+  --text: #eaf0f4; --text-2: #c0cad3; --muted: #8f9ca8;
+  /* Garis & hover: --border garis halus, --border-strong garis input/tombol, --hover sorot baris/tombol. */
+  --border: #222b34; --border-strong: #34414d; --hover: rgba(255, 255, 255, .06);
+  /* Warna merek: --primary tombol/aktif; --primary-ink warna teks di atas --primary; --primary-soft latar lembut. */
+  --primary: #6fef38; --primary-dark: #57d427; --primary-ink: #07120a; --primary-soft: rgba(111, 239, 56, .15);
+  /* Aksen tambahan (sorotan grafik/ikon); --sun = kuning matahari. */
+  --accent: #a8f58a; --accent-2: #22c55e; --sun: #fbbf24;
+  /* Status: ok (hijau), warn (kuning), danger (merah), info (biru). Varian -bg = latar badge/alert transparan. */
+  --ok: #7bf24a; --ok-bg: rgba(111, 239, 56, .14);
+  --warn: #fbbf24; --warn-bg: rgba(251, 191, 36, .14);
+  /* --danger-solid = merah PEKAT untuk latar tombol (teks putih tetap terbaca di kedua tema). */
+  --danger: #f87171; --danger-bg: rgba(248, 113, 113, .14); --danger-solid: #dc2626;
+  --info: #60a5fa; --info-bg: rgba(96, 165, 250, .14);
+  /* Lain-lain: --muted-bg latar badge/chip netral, --input-bg latar field, --focus warna cincin fokus. */
+  --muted-bg: #1b232c; --input-bg: #0b0f13; --focus: #6fef38;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .55), 0 6px 18px rgba(0, 0, 0, .35);
+  /* palet grafik awal (urutan tetap = urutan vendor) */
+  /* --series-N dipakai grafik berdasarkan urutan ISP/vendor; jangan diurutkan ulang agar warna tiap ISP konsisten. */
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+  --series-5: #d55181; --series-6: #0ca30c; --series-7: #9085e9; --series-8: #e66767;
+  /* Grafik: garis grid, garis sumbu, dan warna cincin (donut) untuk bagian nonaktif. */
+  --chart-grid: #1b242d; --chart-axis: #2c3945; --ring-inactive: #3c4955;
+  --radius: 12px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+/* ---------- Token tema terang (menimpa variabel di atas; nama variabel sama) ---------- */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f1f4f9; --surface: #ffffff; --surface-2: #f6f8fb; --surface-3: #eceff5; --sidebar-bg: #ffffff;
+  --text: #1c2430; --text-2: #475467; --muted: #5d6a7c;
+  --border: #e1e6ee; --border-strong: #cdd4df; --hover: rgba(16, 24, 40, .045);
+  --primary: #2b7d12; --primary-dark: #1f6309; --primary-ink: #ffffff; --primary-soft: rgba(43, 125, 18, .12);
+  --accent: #2d7416; --accent-2: #12805c; --sun: #a15c07;
+  --ok: #0f7352; --ok-bg: #e3f6ee; --warn: #8f5206; --warn-bg: #fdf0d8;
+  --danger: #b42318; --danger-bg: #fde8e6; --danger-solid: #b42318;
+  --info: #1d5fb4; --info-bg: #e3eefb;
+  --muted-bg: #eef0f4; --input-bg: #ffffff; --focus: #2b7d12;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+  /* Seri grafik versi terang: urutan tetap sama dengan tema gelap (urutan ISP). */
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+  --series-5: #e87ba4; --series-6: #008300; --series-7: #6250d6; --series-8: #e34948;
+  --chart-grid: #e1e0d9; --chart-axis: #c3c2b7; --ring-inactive: #c3cad6;
+}
+/* ---------- Reset & utilitas dasar ---------- */
+* { box-sizing: border-box; }
+/* !important wajib: kelas lain yang mengatur display (flex/grid/inline-flex) akan menimpa [hidden] bawaan browser, sehingga elemen "hidden" tetap tampil. */
+[hidden] { display: none !important; }
+html { font-size: 15px; }
+body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.45; }
+h1, h2, h3, p { margin: 0; }
+/* .sr-only: disembunyikan secara visual tapi tetap dibaca pembaca layar. */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.muted { color: var(--muted); }
+/* .ico: ukuran/gaya standar ikon SVG (garis, warna mengikuti teks via currentColor). */
+.ico { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- Buttons & fields ---------- */
+/* Tombol: .btn dasar; varian .btn-primary (aksi utama), .btn-danger (hapus), .btn-danger-ghost (hapus ringan), .btn-sm (kecil). */
+.btn { display: inline-flex; align-items: center; gap: 7px; font: inherit; font-size: .88rem; padding: 8px 14px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); border-radius: 9px; cursor: pointer; transition: background .15s, border-color .15s; }
+.btn:hover:not(:disabled) { background: var(--surface-3); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn:focus-visible, .th-sort:focus-visible, .chip:focus-visible, .icon-btn:focus-visible, .nav-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.btn-primary { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); font-weight: 700; }
+.btn-primary:hover:not(:disabled) { background: var(--primary-dark); border-color: var(--primary-dark); }
+/* .btn-danger memakai --danger-solid (bukan --danger) karena --danger berwarna pastel di tema gelap sehingga teks putih tidak terbaca. */
+.btn-danger { background: var(--danger-solid); border-color: var(--danger-solid); color: #fff; font-weight: 700; }
+.btn-danger:hover:not(:disabled) { filter: brightness(.9); background: var(--danger-solid); }
+.btn-danger-ghost { color: var(--danger); }
+.btn-danger-ghost:hover:not(:disabled) { background: var(--danger-bg); }
+.btn-sm { padding: 4px 10px; font-size: .78rem; }
+.icon-btn { border: 0; background: none; font-size: 1.1rem; cursor: pointer; color: var(--muted); padding: 4px 8px; border-radius: 6px; }
+.icon-btn:hover { background: var(--hover); color: var(--text); }
+
+/* Field formulir: .field = label di atas input; .field-inline = sejajar; .field-grow = melebar mengisi baris. */
+.field { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; }
+.field > span { font-weight: 600; color: var(--text-2); }
+.field small { font-weight: 400; color: var(--muted); }
+.field-inline { flex-direction: row; align-items: center; gap: 8px; }
+.field-grow { flex: 1 1 260px; }
+input, select, textarea { font: inherit; font-size: .9rem; padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 9px; background: var(--input-bg); color: var(--text); width: 100%; }
+input::placeholder, textarea::placeholder { color: var(--muted); }
+textarea { resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus); outline-offset: 0; border-color: var(--focus); }
+/* .is-invalid ditambahkan JS saat validasi gagal. */
+input.is-invalid { border-color: var(--danger); background: var(--danger-bg); }
+.field-inline select { width: auto; }
+/* Dropdown native: beri warna eksplisit agar daftar opsi terbaca di tema gelap. */
+option { background: var(--surface); color: var(--text); }
+
+/* ---------- Panel, chips, toolbar ---------- */
+/* .panel = kartu pembungkus konten; .chips/.chip = filter pil (.is-active = terpilih, angka di <span>); .toolbar = baris filter/pencarian. */
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.chip { font: inherit; font-size: .82rem; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: transparent; color: var(--text); cursor: pointer; }
+.chip span { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; background: var(--muted-bg); border-radius: 999px; font-size: .75rem; text-align: center; }
+.chip:hover { background: var(--hover); }
+.chip.is-active { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); font-weight: 700; }
+.chip.is-active span { background: rgba(0, 0, 0, .18); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+.toolbar select { min-width: 150px; }
+
+/* ---------- Table ---------- */
+/* .table-wrap = area scroll (header sticky di dalamnya); table.data lebar minimum 1700px sehingga di layar kecil di-scroll horizontal. */
+.table-wrap { overflow: auto; max-height: 68vh; border: 1px solid var(--border); border-radius: 9px; }
+table.data { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .85rem; min-width: 1700px; }
+.data th, .data td { padding: 9px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; white-space: nowrap; }
+.data thead th { position: sticky; top: 0; z-index: 2; background: var(--surface-2); font-size: .74rem; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); border-bottom: 1px solid var(--border-strong); }
+.data tbody tr:hover { background: var(--hover); }
+.data tbody tr:last-child td { border-bottom: 0; }
+/* Sel khusus: .num angka rata kanan, .addr alamat boleh turun baris, .actions kolom tombol aksi. */
+.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+.data .strong { font-weight: 600; }
+.data .addr { white-space: normal; min-width: 220px; max-width: 320px; color: var(--text-2); }
+.data .actions { white-space: nowrap; }
+/* .th-sort = tombol pengurut di header kolom (.is-active = kolom yang sedang diurutkan). */
+.th-sort { font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; font-weight: 700; }
+.th-sort span { opacity: .6; font-size: .7rem; }
+.th-sort.is-active, .th-sort.is-active span { color: var(--primary); opacity: 1; }
+/* Sel pembayaran bulanan: .pay-paid = sudah dibayar, .pay-empty = kosong. */
+.pay-paid { color: var(--ok); background: var(--ok-bg); }
+.pay-empty { color: var(--border-strong); }
+.vendor { font-weight: 600; }
+
+/* ---------- Badge status ---------- */
+/* Lencana kecil berwarna sesuai status: ok, warn, danger, info, muted. */
+.badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .74rem; font-weight: 600; }
+.badge-ok { background: var(--ok-bg); color: var(--ok); }
+.badge-warn { background: var(--warn-bg); color: var(--warn); }
+.badge-danger { background: var(--danger-bg); color: var(--danger); }
+.badge-info { background: var(--info-bg); color: var(--info); }
+.badge-muted { background: var(--muted-bg); color: var(--muted); }
+
+/* ---------- Keadaan kosong, pager, catatan kaki ---------- */
+/* .empty = tampilan saat tabel tanpa data; .pager = pengaturan halaman di bawah tabel. */
+.empty { text-align: center; padding: 44px 16px; white-space: normal; }
+.empty h3 { font-size: 1.05rem; margin-bottom: 6px; }
+.empty p { color: var(--muted); margin-bottom: 16px; }
+.empty-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+.pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: .85rem; color: var(--muted); }
+.pager-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pager-controls select { width: auto; padding: 5px 8px; font-size: .82rem; }
+.pager-label { min-width: 70px; text-align: center; }
+.footnote { margin: 16px 0 28px; font-size: .8rem; color: var(--muted); }
+
+/* ---------- Dialogs ---------- */
+/* Memakai elemen <dialog>: saat [open] jadi flex kolom (head, body yang bisa scroll, foot). .dialog-lg/.dialog-sm = lebar maksimum. */
+.dialog { border: 1px solid var(--border-strong); border-radius: 14px; padding: 0; box-shadow: 0 20px 50px rgba(0, 0, 0, .5); background: var(--surface); color: var(--text); width: calc(100% - 24px); max-height: calc(100vh - 24px); overflow: hidden; }
+.dialog[open] { display: flex; flex-direction: column; }
+.dialog form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.dialog::backdrop { background: rgba(2, 6, 14, .65); }
+.dialog-lg { max-width: 760px; }
+.dialog-sm { max-width: 420px; }
+.dialog-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.dialog-head h2 { font-size: 1.15rem; }
+.dialog-body { padding: 18px 20px; overflow-y: auto; flex: 1; }
+.dialog-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--border); background: var(--surface-2); }
+/* Grid formulir 2 kolom (.span-2 = melebar penuh); .alert = kotak pesan galat validasi. */
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.span-2 { grid-column: span 2; }
+.alert { background: var(--danger-bg); border: 1px solid var(--danger); color: var(--danger); border-radius: 9px; padding: 10px 14px; margin-bottom: 14px; font-size: .85rem; }
+.alert ul { margin: 6px 0 0; padding-left: 18px; }
+
+/* Kotak input pembayaran per bulan di dialog (.pay-grid 4 kolom; turun ke 3/2 kolom di layar kecil). */
+.pay-box { margin: 18px 0 0; padding: 12px 14px 14px; border: 1px solid var(--border); border-radius: 9px; }
+.pay-box legend { padding: 0 6px; font-weight: 700; font-size: .85rem; }
+.pay-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap; }
+.pay-total { font-size: .88rem; }
+.pay-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.pay-field { display: flex; flex-direction: column; gap: 3px; font-size: .78rem; color: var(--muted); }
+.pay-field input { text-align: right; }
+.hint { color: var(--muted); font-size: .78rem; margin-top: 8px; }
+
+/* ---------- Toasts ---------- */
+/* Notifikasi sementara pojok kanan bawah; .toast-out dipasang JS sebelum elemen dihapus (animasi hilang). */
+.toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 100; max-width: min(420px, calc(100vw - 32px)); }
+.toast { padding: 11px 16px; border-radius: 9px; color: #fff; background: #0b0f13; border: 1px solid rgba(255, 255, 255, .22); box-shadow: var(--shadow); font-size: .88rem; white-space: pre-line; transition: opacity .3s, transform .3s; }
+.toast-success { background: #15803d; }
+.toast-error { background: #b91c1c; }
+.toast-out { opacity: 0; transform: translateY(8px); }
+
+/* ---------- Responsif ---------- */
+/* <=720px: font lebih kecil, form 1 kolom, tabel lebih pendek. <=420px: grid pembayaran 2 kolom. Terakhir: matikan transisi bila pengguna minta gerak dikurangi. */
+@media (max-width: 720px) {
+  html { font-size: 14px; }
+  .panel { padding: 14px; }
+  .toolbar > .field, .toolbar select { width: 100%; }
+  .grid { grid-template-columns: 1fr; }
+  .span-2 { grid-column: auto; }
+  .pay-grid { grid-template-columns: repeat(3, 1fr); }
+  .pager { justify-content: center; text-align: center; }
+  .table-wrap { max-height: 60vh; }
+}
+@media (max-width: 420px) { .pay-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
