@@ -284,7 +284,7 @@
     nets[0].statusGerai = 'Terminated'; nets[1].statusGerai = 'Merger';
     const c = await openApp({ hash: '#network', netRecords: nets });
     try {
-      const heads = Array.from(c.doc.querySelectorAll('#netHead th')).map((th) => th.innerText.replace(/[↕▲▼]/g, '').replace(/\s+/g, ' ').trim());
+      const heads = Array.from(c.doc.querySelectorAll('#netHead th')).map((th) => th.textContent.replace(/[↕▲▼]/g, '').replace(/\s+/g, ' ').trim());
       T.ok(heads.indexOf('Aksi') === -1, 'kolom Aksi harus hilang: ' + heads.join('|'));
       T.ok(heads.indexOf('Bandwidth') === -1 && heads.indexOf('Rasio / Bandwidth') > -1, 'Rasio dan Bandwidth harus satu kolom: ' + heads.join('|'));
       T.eq(heads[heads.length - 1], 'Status Gerai', 'kolom terakhir = Status Gerai');
