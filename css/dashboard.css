@@ -249,3 +249,18 @@ table.data.rekap-t { min-width: 0; width: 100%; table-layout: fixed; font-size: 
   .topbar .field-inline > span:not(.sr-only) { display: none; }
   .topbar .topbar-spacer { flex: 1 1 0; }
 }
+/* ---------- Data Network: status gerai, nama sebagai tombol ubah, kolom Rasio/Bandwidth ---------- */
+/* Dropdown Status Gerai di dalam tabel: dibuat seperti "pil" berwarna; select global (width 100%) ditimpa. */
+select.status-select { width: auto; min-width: 118px; padding: 4px 26px 4px 12px; font-size: .82rem; font-weight: 700; border-radius: 999px; cursor: pointer; border: 1px solid transparent; }
+select.status-select.st-aktif { color: var(--ok); background-color: var(--ok-bg); }
+select.status-select.st-terminated { color: var(--danger); background-color: var(--danger-bg); }
+select.status-select.st-merger { color: var(--warn); background-color: var(--warn-bg); }
+select.status-select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Nama gerai di tabel = tombol bertampilan teks; klik membuka form ubah (pengganti kolom Aksi). */
+.link-btn { font: inherit; font-weight: 600; color: var(--text); background: none; border: 0; padding: 0; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.link-btn:hover { color: var(--primary); text-decoration: underline; }
+.link-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+/* Bandwidth di samping lencana rasio. */
+.net-table .bw { margin-left: 6px; color: var(--text-2); }
+/* Tombol "Hapus data ini" di form ubah: rata kiri, terpisah dari Batal/Simpan. */
+#netFormDelete { margin-right: auto; }

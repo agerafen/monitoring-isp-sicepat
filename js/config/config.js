@@ -47,6 +47,9 @@ App.config = {
   netFunctions: ['LM', 'LM + FM'],
   // Pilihan rasio (mis. rasio splitter/bandwidth).
   netRatios: ['1:1', '1:2', '1:4', '1:8'],
+  // Status gerai pada Data Network (urutan = urutan di dropdown). Nilai pertama adalah bawaan untuk data baru/lama
+  // yang belum punya status. Nilai lain di luar daftar ditolak saat validasi/impor.
+  netStatuses: ['Aktif', 'Terminated', 'Merger'],
   // Opsi jumlah baris per halaman; elemen pertama jadi default paginasi.
   pageSizes: [10, 25, 50, 100],
   // Batas hari: sisa sewa <= angka ini dianggap "segera berakhir" (peringatan di dashboard).

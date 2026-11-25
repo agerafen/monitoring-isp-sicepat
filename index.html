@@ -235,7 +235,7 @@
       </div>
 
       <!-- ===== Data Network ===== -->
-      <!-- id dipakai JS (ui-network.js): netStats, netFilterVendor/netFilterFungsi/netFilterRasio, btnNetImport, netImportFile, btnNetAdd, netHead, netBody, netPagerInfo, netPageSize, netPagePrev, netPageNext, netPageLabel. data-net-file/data-format = ekspor/template. -->
+      <!-- id dipakai JS (ui-network.js): netStats, netFilterVendor/netFilterFungsi/netFilterRasio/netFilterStatus, btnNetImport, netImportFile, btnNetAdd, netHead, netBody, netPagerInfo, netPageSize, netPagePrev, netPageNext, netPageLabel. data-net-file/data-format = ekspor/template. -->
       <div data-page="network" hidden>
         <section class="net-stats" id="netStats" aria-label="Ringkasan Data Network"></section>
         <section class="panel" aria-label="Data Network">
@@ -243,6 +243,7 @@
             <label class="field"><span class="sr-only">Nama ISP</span><select id="netFilterVendor"></select></label>
             <label class="field"><span class="sr-only">Function</span><select id="netFilterFungsi"></select></label>
             <label class="field"><span class="sr-only">Rasio</span><select id="netFilterRasio"></select></label>
+            <label class="field"><span class="sr-only">Status gerai</span><select id="netFilterStatus"></select></label>
             <span class="topbar-spacer"></span>
             <button type="button" class="btn btn-sm" id="btnNetImport"><svg class="ico"><use href="#i-upload"/></svg> Impor</button>
             <button type="button" class="btn btn-sm" data-net-file="export" data-format="xlsx"><svg class="ico"><use href="#i-download"/></svg> Excel</button>
@@ -406,16 +407,18 @@
           <label class="field span-2"><span>Alamat</span><textarea id="nAlamat" maxlength="500" rows="2"></textarea></label>
           <label class="field"><span>Nama ISP *</span><select id="nVendor"></select></label>
           <label class="field"><span>Rasio *</span><select id="nRasio"></select></label>
+          <label class="field"><span>Status Gerai *</span><select id="nStatus"></select></label>
           <label class="field"><span>Bandwidth</span><input id="nBandwidth" maxlength="80" placeholder="Contoh: 50 Mbps" autocomplete="off"></label>
           <label class="field"><span>SSID</span><input id="nSsid" maxlength="80" autocomplete="off"></label>
           <label class="field"><span>IP Gateway</span><input id="nGateway" maxlength="20" placeholder="192.168.1.1" inputmode="decimal" autocomplete="off"></label>
           <label class="field"><span>IP Address</span><input id="nIp" maxlength="20" placeholder="192.168.1.2 atau 192.168.1.2/24" inputmode="decimal" autocomplete="off"></label>
-          <label class="field span-2"><span>DNS <small>(pisahkan dengan koma)</small></span><input id="nDns" maxlength="150" placeholder="8.8.8.8, 1.1.1.1" autocomplete="off"></label>
+          <label class="field"><span>DNS <small>(pisahkan dengan koma)</small></span><input id="nDns" maxlength="150" placeholder="8.8.8.8, 1.1.1.1" autocomplete="off"></label>
           <label class="field"><span>Mikrotik Type</span><input id="nMtType" maxlength="80" placeholder="Contoh: hAP ac2" autocomplete="off"></label>
           <label class="field"><span>SN Mikrotik</span><input id="nMtSn" maxlength="80" autocomplete="off"></label>
         </div>
       </div>
       <footer class="dialog-foot">
+        <button type="button" class="btn btn-danger-ghost" id="netFormDelete" hidden>Hapus data ini</button>
         <button type="button" class="btn" id="netCancel">Batal</button>
         <button type="submit" class="btn btn-primary">Simpan</button>
       </footer>

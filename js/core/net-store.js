@@ -35,14 +35,15 @@ App.netStore = (function () {
     { key: 'ipAddress', label: 'IP Address' },
     { key: 'dns', label: 'DNS' },
     { key: 'mikrotikType', label: 'Mikrotik Type' },
-    { key: 'snMikrotik', label: 'SN Mikrotik' }
+    { key: 'snMikrotik', label: 'SN Mikrotik' },
+    { key: 'statusGerai', label: 'Status Gerai' }
   ];
 
   // Daftar rekaman Data Network di memori (sumber data tampilan). Diganti utuh oleh remove()/addMany().
   let records = [];
   // State tampilan: kata kunci, filter dropdown, urutan, halaman aktif, dan ukuran halaman.
   // Dibaca/ditulis oleh ui-network.js; page di-clamp otomatis di view().
-  const state = { query: '', vendor: '', fungsi: '', rasio: '', sort: { key: 'namaGerai', dir: 'asc' }, page: 1, pageSize: config.pageSizes[0] };
+  const state = { query: '', vendor: '', fungsi: '', rasio: '', statusGerai: '', sort: { key: 'namaGerai', dir: 'asc' }, page: 1, pageSize: config.pageSizes[0] };
 
   // ---------- normalisasi ----------
   // Normalisasi Function: hanya dua nilai baku, 'LM' atau 'LM + FM'.
@@ -53,6 +54,16 @@ App.netStore = (function () {
     if (s === 'lm') return 'LM';
     if (s === 'lm+fm' || s === 'lmfm' || s === 'lm&fm') return 'LM + FM';
     return '';
+  }
+
+  // Normalisasi Status Gerai ke nilai baku config.netStatuses. Tidak peka huruf besar-kecil; menerima beberapa
+  // ejaan umum (aktif/active, terminate/terminated, merge/merger/marger). Tidak dikenal -> '' (ditolak validate()).
+  function normStatus(v) {
+    const s = utils.normalizeText(v).toLowerCase();
+    if (!s) return '';
+    const alias = { aktif: 'Aktif', active: 'Aktif', terminated: 'Terminated', terminate: 'Terminated', merger: 'Merger', marger: 'Merger', merge: 'Merger', merged: 'Merger' };
+    const hit = alias[s];
+    return hit && config.netStatuses.includes(hit) ? hit : '';
   }
 
   // Normalisasi Rasio: spasi dibuang, "/" dan ";" diganti ":" (mis. "1/4" -> "1:4"), lalu harus
@@ -88,7 +99,9 @@ App.netStore = (function () {
       ipAddress: t('ipAddress', L.ip),
       dns: normDns(r && r.dns).slice(0, L.nama),
       mikrotikType: t('mikrotikType'),
-      snMikrotik: t('snMikrotik')
+      snMikrotik: t('snMikrotik'),
+      // Status Gerai: kosong/tidak dikenal (mis. data lama sebelum kolom ini ada) menjadi bawaan config.netStatuses[0] ('Aktif').
+      statusGerai: normStatus(r && r.statusGerai) || config.netStatuses[0]
     };
   }
 
@@ -118,6 +131,10 @@ App.netStore = (function () {
     if (!normFungsi(data.fungsi)) errors.push('Function wajib dipilih (LM atau LM + FM).');
     if (!config.vendors.includes(data.vendor)) errors.push('Nama ISP wajib dipilih.');
     if (!normRasio(data.rasio)) errors.push('Rasio wajib dipilih (1:1, 1:2, 1:4, atau 1:8).');
+
+    // Status Gerai boleh kosong (otomatis 'Aktif'), tetapi bila diisi harus salah satu nilai yang dikenal.
+    const stRaw = utils.normalizeText(data.statusGerai);
+    if (stRaw && !normStatus(stRaw)) errors.push('Status Gerai harus salah satu: ' + config.netStatuses.join(', ') + '.');
 
     const gw = utils.normalizeText(data.ipGateway);
     if (gw && !isIPv4(gw, false)) errors.push('IP Gateway tidak valid (contoh: 192.168.1.1).');
@@ -212,6 +229,7 @@ App.netStore = (function () {
       if (state.vendor && r.vendor !== state.vendor) return false;
       if (state.fungsi && r.fungsi !== state.fungsi) return false;
       if (state.rasio && r.rasio !== state.rasio) return false;
+      if (state.statusGerai && r.statusGerai !== state.statusGerai) return false;
       return !q || FIELDS.map((f) => r[f.key]).join(' ').toLowerCase().includes(q);
     });
     const { key, dir } = state.sort;
@@ -235,8 +253,9 @@ App.netStore = (function () {
 
   /** Ringkasan untuk kartu di atas tabel. "Belum lengkap" = IP Address, IP Gateway, atau SN Mikrotik kosong. */
   function stats() {
-    const s = { total: records.length, lm: 0, lmfm: 0, incomplete: 0 };
+    const s = { total: records.length, lm: 0, lmfm: 0, incomplete: 0, aktif: 0, terminated: 0, merger: 0 };
     records.forEach((r) => {
+      if (r.statusGerai === 'Terminated') s.terminated++; else if (r.statusGerai === 'Merger') s.merger++; else s.aktif++;
       if (r.fungsi === 'LM') s.lm++; else if (r.fungsi === 'LM + FM') s.lmfm++;
       if (!r.ipAddress || !r.ipGateway || !r.snMikrotik) s.incomplete++;
     });
@@ -244,5 +263,5 @@ App.netStore = (function () {
   }
 
   // API publik modul (lihat daftar di header file).
-  return { FIELDS, state, init, all, find, add, update, remove, clear, addMany, validate, codeSet, normalize, normFungsi, normRasio, filtered, view, stats };
+  return { FIELDS, state, init, all, find, add, update, remove, clear, addMany, validate, codeSet, normalize, normFungsi, normRasio, normStatus, filtered, view, stats };
 })();

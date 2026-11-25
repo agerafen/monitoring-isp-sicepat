@@ -16,10 +16,26 @@ App.network = (function () {
   const esc = utils.escapeHtml;
   const $ = (id) => document.getElementById(id);
   const FIELDS = ns.FIELDS;
-  // Kolom yang boleh diurutkan (key harus sama dengan FIELDS di net-store.js); lainnya header biasa.
-  const SORTABLE = ['codeAnalytic', 'namaGerai', 'fungsi', 'vendor', 'rasio'];
-  // Jumlah kolom untuk colspan baris kosong: semua field + 1 kolom "Aksi".
-  const COL_COUNT = FIELDS.length + 1;
+  // Kolom TAMPILAN tabel (urutan = urutan <td> di rowHtml). Berbeda dengan FIELDS (kolom DATA untuk ekspor/impor):
+  // "Rasio" dan "Bandwidth" ditampilkan sebagai satu kolom, dan kolom terakhir = Status Gerai (bukan Aksi).
+  // sort: true -> header berupa tombol urut (key = nama field di net-store.js; kolom gabungan diurutkan menurut rasio).
+  const TABLE_COLUMNS = [
+    { key: 'codeAnalytic', label: 'Code Analytic', sort: true },
+    { key: 'namaGerai', label: 'Nama Gerai', sort: true },
+    { key: 'fungsi', label: 'Function', sort: true },
+    { key: 'alamat', label: 'Alamat' },
+    { key: 'vendor', label: 'Nama ISP', sort: true },
+    { key: 'rasio', label: 'Rasio / Bandwidth', sort: true },
+    { key: 'ssid', label: 'SSID' },
+    { key: 'ipGateway', label: 'IP Gateway' },
+    { key: 'ipAddress', label: 'IP Address' },
+    { key: 'dns', label: 'DNS' },
+    { key: 'mikrotikType', label: 'Mikrotik Type' },
+    { key: 'snMikrotik', label: 'SN Mikrotik' },
+    { key: 'statusGerai', label: 'Status Gerai', sort: true }
+  ];
+  // Jumlah kolom untuk colspan baris kosong.
+  const COL_COUNT = TABLE_COLUMNS.length;
   // id rekaman yang sedang diubah di form (null = mode tambah).
   let editingId = null;
   // id rekaman yang menunggu konfirmasi hapus di dialog.
@@ -42,13 +58,13 @@ App.network = (function () {
   // (▲ naik, ▼ turun, ↕ netral) dan aria-sort. Klik ditangani delegasi di init() pada #netHead.
   function renderHead() {
     const { key: sKey, dir } = ns.state.sort;
-    const cells = FIELDS.map((f) => {
-      if (!SORTABLE.includes(f.key)) return '<th scope="col">' + esc(f.label) + '</th>';
+    const cells = TABLE_COLUMNS.map((f) => {
+      if (!f.sort) return '<th scope="col">' + esc(f.label) + '</th>';
       const active = sKey === f.key;
       const arrow = active ? (dir === 'asc' ? '▲' : '▼') : '↕';
       return '<th scope="col" aria-sort="' + (active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none') + '"><button type="button" class="th-sort' + (active ? ' is-active' : '') + '" data-sort="' + f.key + '">' + esc(f.label) + ' <span aria-hidden="true">' + arrow + '</span></button></th>';
     });
-    $('netHead').innerHTML = '<tr>' + cells.join('') + '<th scope="col">Aksi</th></tr>';
+    $('netHead').innerHTML = '<tr>' + cells.join('') + '</tr>';
   }
 
   // Sel teks yang di-escape; nilai kosong ditampilkan sebagai tanda "–" redup.
@@ -63,24 +79,28 @@ App.network = (function () {
   // Semua nilai dari data pengguna wajib lewat esc()/cell() agar tidak ada injeksi HTML.
   function rowHtml(r) {
     const fungsi = r.fungsi ? '<span class="badge ' + (r.fungsi === 'LM' ? 'badge-info' : 'badge-ok') + '">' + esc(r.fungsi) + '</span>' : '<span class="muted">–</span>';
+    // Kolom gabungan: lencana rasio + bandwidth di sampingnya (masing-masing "–" bila kosong).
     const rasio = r.rasio ? '<span class="badge badge-muted">' + esc(r.rasio) + '</span>' : '<span class="muted">–</span>';
+    const rasioBw = rasio + ' <span class="bw">' + cell(r.bandwidth) + '</span>';
+    // Status Gerai: dropdown langsung di tabel (ubah = tersimpan seketika; ditangani delegasi 'change' di init()).
+    // Kelas st-<status> hanya untuk warna. Nilai di luar daftar tidak mungkin (normalize() memaksa ke daftar).
+    const stOptions = config.netStatuses.map((s) => '<option value="' + esc(s) + '"' + (s === r.statusGerai ? ' selected' : '') + '>' + esc(s) + '</option>').join('');
+    const statusSel = '<select class="status-select st-' + esc(String(r.statusGerai).toLowerCase()) + '" data-net-status data-id="' + esc(r.id) + '" aria-label="Status gerai ' + esc(r.namaGerai) + '">' + stOptions + '</select>';
     return '<tr>' +
       '<td class="brk">' + cell(r.codeAnalytic) + '</td>' +
-      '<td class="strong">' + esc(r.namaGerai) + '</td>' +
+      // Nama gerai = tombol "ubah": klik membuka form ubah (menggantikan kolom Aksi); hapus ada di dalam form itu.
+      '<td class="strong"><button type="button" class="link-btn" data-net="edit" data-id="' + esc(r.id) + '" title="Klik untuk mengubah / menghapus data ini">' + esc(r.namaGerai) + '</button></td>' +
       '<td class="nw">' + fungsi + '</td>' +
       '<td class="addr">' + cell(r.alamat) + '</td>' +
       '<td><span class="vendor">' + cell(r.vendor) + '</span></td>' +
-      '<td class="nw">' + rasio + '</td>' +
-      '<td>' + cell(r.bandwidth) + '</td>' +
+      '<td class="nw">' + rasioBw + '</td>' +
       '<td class="brk">' + cell(r.ssid) + '</td>' +
       '<td class="mono nw">' + cell(r.ipGateway) + '</td>' +
       '<td class="mono nw">' + cell(r.ipAddress) + '</td>' +
       '<td class="mono">' + cell(r.dns) + '</td>' +
       '<td>' + cell(r.mikrotikType) + '</td>' +
       '<td class="mono brk">' + cell(r.snMikrotik) + '</td>' +
-      '<td class="actions nw">' +
-      '<button type="button" class="btn btn-sm" data-net="edit" data-id="' + esc(r.id) + '" aria-label="Ubah ' + esc(r.namaGerai) + '">Ubah</button> ' +
-      '<button type="button" class="btn btn-sm btn-danger-ghost" data-net="delete" data-id="' + esc(r.id) + '" aria-label="Hapus ' + esc(r.namaGerai) + '">Hapus</button></td></tr>';
+      '<td class="nw">' + statusSel + '</td></tr>';
   }
 
   // Baris pengganti saat tidak ada baris untuk ditampilkan. Dua kasus:
@@ -157,6 +177,10 @@ App.network = (function () {
     fillSelect($('nFungsi'), config.netFunctions, rec ? rec.fungsi : '', 'Pilih function…');
     fillSelect($('nVendor'), config.vendors, rec ? rec.vendor : '', 'Pilih ISP…');
     fillSelect($('nRasio'), config.netRatios, rec ? rec.rasio : '', 'Pilih rasio…');
+    // Status Gerai: data baru mulai dari bawaan ('Aktif'); tanpa opsi kosong karena selalu punya nilai.
+    fillSelect($('nStatus'), config.netStatuses, rec ? rec.statusGerai : config.netStatuses[0]);
+    // Tombol Hapus di form hanya ada saat MENGUBAH data (menggantikan tombol Hapus per baris yang dulu di kolom Aksi).
+    $('netFormDelete').hidden = !rec;
     showErrors([]);
     $('netDialog').showModal();
     $('nCode').focus();
@@ -169,6 +193,7 @@ App.network = (function () {
     data.fungsi = $('nFungsi').value;
     data.vendor = $('nVendor').value;
     data.rasio = $('nRasio').value;
+    data.statusGerai = $('nStatus').value;
     return data;
   }
 
@@ -253,7 +278,8 @@ App.network = (function () {
     ipgateway: 'ipGateway', ipgeteway: 'ipGateway', gateway: 'ipGateway', geteway: 'ipGateway',
     ipaddress: 'ipAddress', ipaddres: 'ipAddress', ip: 'ipAddress', dns: 'dns',
     mikrotiktype: 'mikrotikType', typemikrotik: 'mikrotikType', tipemikrotik: 'mikrotikType', mikrotik: 'mikrotikType',
-    snmikrotik: 'snMikrotik', serialnumbermikrotik: 'snMikrotik', sn: 'snMikrotik'
+    snmikrotik: 'snMikrotik', serialnumbermikrotik: 'snMikrotik', sn: 'snMikrotik',
+    statusgerai: 'statusGerai', status: 'statusGerai', statustoko: 'statusGerai'
   };
 
   /**
@@ -288,6 +314,8 @@ App.network = (function () {
       if (raw.bandwidth && /^\d+(\.\d+)?$/.test(raw.bandwidth)) raw.bandwidth += ' Mbps';
       raw.vendor = csv.matchVendor(raw.vendor) || raw.vendor || '';
       raw.fungsi = ns.normFungsi(raw.fungsi) ? ns.normFungsi(raw.fungsi) : raw.fungsi;
+      // Status Gerai: ejaan dikenal dibakukan; kosong -> otomatis 'Aktif'; tidak dikenal dibiarkan agar ditolak validate().
+      raw.statusGerai = ns.normStatus(raw.statusGerai) || raw.statusGerai || '';
       const code = (raw.codeAnalytic || '').toLowerCase();
       // validate tidak diberi daftar kode: dobel terhadap data tersimpan DAN antar-baris file dicek di bawah lewat seenCodes.
       const problems = ns.validate(raw, null, new Set());
@@ -337,8 +365,8 @@ App.network = (function () {
   // Kosongkan semua filter + kotak cari (#searchInput, milik halaman global) dan dropdown filter, lalu render.
   // Urutan (sort) dan ukuran halaman tidak ikut direset.
   function resetFilters() {
-    Object.assign(ns.state, { query: '', vendor: '', fungsi: '', rasio: '', page: 1 });
-    $('netFilterVendor').value = ''; $('netFilterFungsi').value = ''; $('netFilterRasio').value = '';
+    Object.assign(ns.state, { query: '', vendor: '', fungsi: '', rasio: '', statusGerai: '', page: 1 });
+    $('netFilterVendor').value = ''; $('netFilterFungsi').value = ''; $('netFilterRasio').value = ''; $('netFilterStatus').value = '';
     $('searchInput').value = '';
     render();
   }
@@ -357,11 +385,13 @@ App.network = (function () {
     $('netFilterVendor').innerHTML = opts(config.vendors, 'Semua ISP');
     $('netFilterFungsi').innerHTML = opts(config.netFunctions, 'Semua function');
     $('netFilterRasio').innerHTML = opts(config.netRatios, 'Semua rasio');
+    $('netFilterStatus').innerHTML = opts(config.netStatuses, 'Semua status gerai');
     $('netPageSize').innerHTML = config.pageSizes.map((n) => '<option value="' + n + '">' + n + ' / halaman</option>').join('');
 
     $('netFilterVendor').addEventListener('change', (e) => setFilter('vendor', e.target.value));
     $('netFilterFungsi').addEventListener('change', (e) => setFilter('fungsi', e.target.value));
     $('netFilterRasio').addEventListener('change', (e) => setFilter('rasio', e.target.value));
+    $('netFilterStatus').addEventListener('change', (e) => setFilter('statusGerai', e.target.value));
     $('netPageSize').addEventListener('change', (e) => { ns.state.pageSize = Number(e.target.value); ns.state.page = 1; render(); });
     $('netPagePrev').addEventListener('click', () => { ns.state.page--; render(); });
     $('netPageNext').addEventListener('click', () => { ns.state.page++; render(); });
@@ -391,6 +421,26 @@ App.network = (function () {
       else if (a === 'skeleton') createSkeleton();
       else if (a === 'template-xlsx') exportData(true, 'xlsx');
       else if (a === 'reset') resetFilters();
+    });
+
+    // Ubah Status Gerai langsung dari dropdown di tabel: simpan seketika; bila gagal (mis. kuota penuh),
+    // tampilan dikembalikan ke nilai tersimpan lewat render().
+    $('netBody').addEventListener('change', (e) => {
+      const sel = e.target.closest('[data-net-status]');
+      if (!sel) return;
+      const rec = ns.find(sel.dataset.id);
+      if (!rec) { toast.error('Data tidak ditemukan.'); render(); return; }
+      const res = ns.update(rec.id, Object.assign({}, rec, { statusGerai: sel.value }));
+      if (res.ok) toast.success('Status ' + rec.namaGerai + ' diubah menjadi ' + sel.value + '.');
+      else toast.error(res.error);
+      render();
+    });
+
+    // Tombol Hapus di dalam form ubah: tutup form lalu buka dialog konfirmasi hapus (askDelete).
+    $('netFormDelete').addEventListener('click', () => {
+      const id = editingId;
+      $('netDialog').close();
+      if (id) askDelete(id);
     });
 
     $('netForm').addEventListener('submit', submitForm);

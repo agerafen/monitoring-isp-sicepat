@@ -524,6 +524,31 @@
     resetAll();
   });
 
+  T.test('Status Gerai: bawaan Aktif, ejaan dikenali, nilai asing ditolak, ikut filter/statistik/ekspor', () => {
+    resetAll();
+    T.eq(config.netStatuses, ['Aktif', 'Terminated', 'Merger']);
+    T.eq(['aktif', 'AKTIF', ' Active ', 'terminated', 'Terminate', 'merger', 'Marger', 'MERGE', 'tutup', '', null, 42].map(ns.normStatus), ['Aktif', 'Aktif', 'Aktif', 'Terminated', 'Terminated', 'Merger', 'Merger', 'Merger', '', '', '', '']);
+    const base = { namaGerai: 'G', fungsi: 'LM', vendor: 'HSI', rasio: '1:1' };
+    T.eq(ns.validate(base), [], 'status boleh kosong (otomatis Aktif)');
+    T.eq(ns.validate(Object.assign({}, base, { statusGerai: 'Merger' })), []);
+    T.ok(ns.validate(Object.assign({}, base, { statusGerai: 'Ditutup' })).some((e) => /Status Gerai/.test(e)), 'nilai asing harus ditolak');
+    ns.add(base);                                                           // tanpa status -> Aktif
+    ns.add(Object.assign({}, base, { namaGerai: 'T', statusGerai: 'terminated' }));
+    ns.add(Object.assign({}, base, { namaGerai: 'M', statusGerai: 'Marger' }));
+    T.eq(ns.all().map((r) => r.statusGerai).sort(), ['Aktif', 'Merger', 'Terminated']);
+    const s = ns.stats();
+    T.eq([s.aktif, s.terminated, s.merger], [1, 1, 1]);
+    ns.state.statusGerai = 'Terminated';
+    T.eq(ns.filtered().map((r) => r.namaGerai), ['T']);
+    ns.state.statusGerai = '';
+    // data lama (tanpa kolom status / berisi nilai aneh) dimuat sebagai Aktif
+    window.localStorage.setItem(config.netStorageKey, JSON.stringify([{ namaGerai: 'Lama' }, { namaGerai: 'Aneh', statusGerai: { x: 1 } }, { namaGerai: 'Asing', statusGerai: 'XYZ' }]));
+    ns.init();
+    T.eq(ns.all().map((r) => r.statusGerai), ['Aktif', 'Aktif', 'Aktif']);
+    T.ok(ns.FIELDS.some((f) => f.key === 'statusGerai'), 'Status Gerai harus ada di kolom ekspor/impor');
+    resetAll();
+  });
+
   T.test('normalisasi Function dan Rasio dari variasi penulisan', () => {
     T.eq(['lm', 'LM', ' lm ', 'LM + FM', 'lm+fm', 'LM+FM', 'lm fm', 'xx', ''].map(ns.normFungsi), ['LM', 'LM', 'LM', 'LM + FM', 'LM + FM', 'LM + FM', 'LM + FM', '', '']);
     T.eq(['1:2', '1/4', ' 1 : 8 ', '1;1', '2:2', '', '1:3'].map(ns.normRasio), ['1:2', '1:4', '1:8', '1:1', '', '', '']);

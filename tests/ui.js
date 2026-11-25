@@ -279,6 +279,83 @@
     } finally { c.close(); }
   });
 
+  T.test('tabel Data Network: Rasio+Bandwidth digabung, tanpa kolom Aksi, Status Gerai diubah dari tabel, klik nama = ubah, hapus lewat form', async () => {
+    const nets = genNet(6);
+    nets[0].statusGerai = 'Terminated'; nets[1].statusGerai = 'Merger';
+    const c = await openApp({ hash: '#network', netRecords: nets });
+    try {
+      const heads = Array.from(c.doc.querySelectorAll('#netHead th')).map((th) => th.innerText.replace(/[↕▲▼]/g, '').replace(/\s+/g, ' ').trim());
+      T.ok(heads.indexOf('Aksi') === -1, 'kolom Aksi harus hilang: ' + heads.join('|'));
+      T.ok(heads.indexOf('Bandwidth') === -1 && heads.indexOf('Rasio / Bandwidth') > -1, 'Rasio dan Bandwidth harus satu kolom: ' + heads.join('|'));
+      T.eq(heads[heads.length - 1], 'Status Gerai', 'kolom terakhir = Status Gerai');
+      const rows = c.doc.querySelectorAll('#netBody tr');
+      T.eq(rows.length, 6);
+      T.ok(/^1:\d\s*50 Mbps$/.test(rows[0].children[5].innerText.replace(/\s+/g, ' ').trim().replace(/^(\d:\d) /, '$1 ')) || /50 Mbps/.test(rows[0].children[5].innerText), 'sel gabungan berisi rasio dan bandwidth: ' + rows[0].children[5].innerText);
+      T.eq(rows[0].children.length, heads.length, 'jumlah <td> harus sama dengan jumlah header');
+      const sel = (i) => rows[i].querySelector('select[data-net-status]');
+      T.eq(Array.from(sel(0).options).map((o) => o.value), ['Aktif', 'Terminated', 'Merger']);
+      T.eq([sel(0).value, sel(1).value, sel(2).value], ['Terminated', 'Merger', 'Aktif']);
+      T.ok(c.doc.querySelector('#netBody [data-net="delete"]') === null, 'tombol Hapus per baris tidak ada lagi');
+
+      // ubah status dari tabel -> tersimpan permanen
+      const target = c.win.App.netStore.all().find((r) => r.namaGerai === 'Gerai Net 2');
+      const s2 = c.doc.querySelector('select[data-net-status][data-id="' + target.id + '"]');
+      s2.value = 'Merger'; s2.dispatchEvent(new c.win.Event('change', { bubbles: true })); await sleep(200);
+      T.eq(c.win.App.netStore.find(target.id).statusGerai, 'Merger');
+      T.eq(JSON.parse(c.win.localStorage.getItem(config.netStorageKey)).find((r) => r.id === target.id).statusGerai, 'Merger', 'harus tersimpan di penyimpanan');
+      T.ok(c.doc.querySelector('select[data-net-status][data-id="' + target.id + '"]').classList.contains('st-merger'), 'warna pil ikut berubah');
+
+      // simpan gagal -> status dikembalikan dan ada pesan
+      const orig = c.win.Storage.prototype.setItem;
+      c.win.Storage.prototype.setItem = function () { throw new c.win.DOMException('penuh', 'QuotaExceededError'); };
+      try {
+        const s3 = c.doc.querySelector('select[data-net-status][data-id="' + target.id + '"]');
+        s3.value = 'Terminated'; s3.dispatchEvent(new c.win.Event('change', { bubbles: true })); await sleep(200);
+      } finally { c.win.Storage.prototype.setItem = orig; }
+      T.eq(c.win.App.netStore.find(target.id).statusGerai, 'Merger', 'simpan gagal -> status tidak berubah');
+      T.eq(c.doc.querySelector('select[data-net-status][data-id="' + target.id + '"]').value, 'Merger', 'dropdown dikembalikan ke nilai tersimpan');
+      T.ok(c.toasts().some((t) => /Gagal menyimpan/.test(t)));
+
+      // filter status
+      const fs = c.doc.getElementById('netFilterStatus');
+      fs.value = 'Terminated'; fs.dispatchEvent(new c.win.Event('change')); await sleep(150);
+      T.eq(c.doc.querySelectorAll('#netBody tr').length, 1, 'filter Terminated');
+      fs.value = ''; fs.dispatchEvent(new c.win.Event('change')); await sleep(150);
+
+      // klik nama -> form ubah; tombol hapus hanya ada di mode ubah
+      c.doc.querySelector('#netBody [data-net="edit"]').click(); await sleep(200);
+      T.ok(c.doc.getElementById('netDialog').open, 'form ubah terbuka');
+      T.eq(c.doc.getElementById('netFormDelete').hidden, false, 'tombol Hapus tampil di mode ubah');
+      T.eq(c.doc.getElementById('nStatus').options.length, 3);
+      const editName = c.doc.getElementById('nGerai').value;
+      c.doc.getElementById('netFormDelete').click(); await sleep(200);
+      T.ok(!c.doc.getElementById('netDialog').open && c.doc.getElementById('netDeleteDialog').open, 'form tertutup, konfirmasi hapus terbuka');
+      T.ok(c.doc.getElementById('netDeleteName').textContent.indexOf(editName) > -1, 'konfirmasi menyebut nama yang benar');
+      c.doc.getElementById('netDeleteConfirm').click(); await sleep(250);
+      T.eq(c.win.App.netStore.all().length, 5, 'satu data terhapus');
+      T.ok(!c.win.App.netStore.all().some((r) => r.namaGerai === editName));
+
+      // mode tambah: tombol hapus tersembunyi, status bawaan Aktif
+      c.doc.getElementById('btnNetAdd').click(); await sleep(150);
+      T.eq(c.doc.getElementById('netFormDelete').hidden, true, 'tidak ada Hapus di mode tambah');
+      T.eq(c.doc.getElementById('nStatus').value, 'Aktif', 'bawaan Aktif');
+      c.doc.getElementById('netDialog').close();
+      T.eq(errorToasts(c), []);
+    } finally { c.close(); }
+  });
+
+  T.test('impor Data Network: kolom Status Gerai dibaca (ejaan bebas); status asing menolak barisnya', async () => {
+    const c = await openApp({ hash: '#network' });
+    try {
+      const csvText = 'Nama Gerai,Function,Nama ISP,Rasio,Status Gerai\r\nA,LM,HSI,1:2,Terminated\r\nB,LM,HSI,1:2,marger\r\nC,LM,HSI,1:2,\r\nD,LM,HSI,1:2,Ditutup\r\n';
+      const dt = new c.win.DataTransfer(); dt.items.add(new c.win.File([csvText], 'net.csv', { type: 'text/csv' }));
+      const input = c.doc.getElementById('netImportFile'); input.files = dt.files; input.dispatchEvent(new c.win.Event('change', { bubbles: true })); await sleep(900);
+      const byName = {}; c.win.App.netStore.all().forEach((r) => { byName[r.namaGerai] = r.statusGerai; });
+      T.eq(byName, { A: 'Terminated', B: 'Merger', C: 'Aktif' }, 'D (status asing) harus ditolak');
+      T.ok(c.toasts().some((t) => /Status Gerai/.test(t)), 'pesan menyebut Status Gerai: ' + c.toasts().join('|'));
+    } finally { c.close(); }
+  });
+
   T.test('Hapus Semua Data Network: konfirmasi menyebut jumlah, Batal aman, konfirmasi menghapus, Data Gerai utuh', async () => {
     const c = await openApp({ hash: '#network', records: genRecords(12), netRecords: genNet(461) });
     try {
